@@ -19,6 +19,18 @@ interface ExtendedStats {
   languages: { [key: string]: number };
 }
 
+interface Repository {
+  forks_count: number;
+  language: string;
+}
+
+interface GitHubEvent {
+  type: string;
+  payload: {
+    commits?: Array<{ message: string }>;
+  };
+}
+
 export default function ProfileAnalyzer() {
   const [username, setUsername] = useState('');
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
@@ -28,12 +40,11 @@ export default function ProfileAnalyzer() {
 
   const fetchExtendedStats = async (username: string) => {
     try {
-      // Fetch repositories to get languages and forks
       const reposResponse = await axios.get(`https://api.github.com/users/${username}/repos`);
-      const repos = reposResponse.data;
+      const repos: Repository[] = reposResponse.data;
 
       // Calculate total forks
-      const totalForks = repos.reduce((acc: number, repo: any) => acc + repo.forks_count, 0);
+      const totalForks = repos.reduce((acc: number, repo: Repository) => acc + repo.forks_count, 0);
 
       // Get languages
       const languages: { [key: string]: number } = {};
@@ -45,8 +56,8 @@ export default function ProfileAnalyzer() {
 
       // For commits, we'll use the events API to get a rough estimate
       const eventsResponse = await axios.get(`https://api.github.com/users/${username}/events/public`);
-      const pushEvents = eventsResponse.data.filter((event: any) => event.type === 'PushEvent');
-      const totalCommits = pushEvents.reduce((acc: number, event: any) => 
+      const pushEvents = eventsResponse.data.filter((event: GitHubEvent) => event.type === 'PushEvent');
+      const totalCommits = pushEvents.reduce((acc: number, event: GitHubEvent) => 
         acc + (event.payload.commits?.length || 0), 0);
 
       setExtendedStats({

@@ -1,101 +1,247 @@
-import Image from "next/image";
+'use client';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import SearchBar from './components/SearchBar';
+import RepoCard from './components/RepoCard';
+import ProfileReadmeGenerator from './components/ProfileReadmeGenerator';
+import GitCheatSheet from './components/GitCheatSheet';
+import ProfileAnalyzer from './components/ProfileAnalyzer';
+
+// Define interface for Repository
+export interface Repository {
+  id: number;
+  name: string;
+  description: string;
+  html_url: string;
+  stargazers_count: number;
+  forks_count: number;
+  language?: string;
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
+  updated_at: string;
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  // Update state definitions with proper typing
+  const [repos, setRepos] = useState<Repository[]>([]);
+  const [favorites, setFavorites] = useState<Repository[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [sort, setSort] = useState('stars');
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [currentQuery, setCurrentQuery] = useState('');
+  const [showReadmeGenerator, setShowReadmeGenerator] = useState(false);
+  const [showCheatSheet, setShowCheatSheet] = useState(false);
+  const [showProfileAnalyzer, setShowProfileAnalyzer] = useState(false);
+  useEffect(() => {
+    const savedFavorites = localStorage.getItem('favorites');
+    if (savedFavorites) {
+      setFavorites(JSON.parse(savedFavorites));
+    }
+  }, []);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const searchRepositories = async (query: string, language: string = '') => {
+    if (!query) return;
+    
+    setLoading(true);
+    setCurrentQuery(query);
+    
+    try {
+      const searchQuery = language 
+        ? `${query} language:${language}`
+        : query;
+        
+      const response = await axios.get(
+        `https://api.github.com/search/repositories?q=${searchQuery}&sort=${sort}&order=desc`
+      );
+      setRepos(response.data.items);
+    } catch (error) {
+      console.error('Error fetching repositories:', error);
+    }
+    setLoading(false);
+  };
+
+  const handleSort = (sortBy: string) => {
+    setSort(sortBy);
+    if (currentQuery) {
+      searchRepositories(currentQuery);
+    }
+  };
+
+  const toggleFavorite = (repo: Repository) => {
+    const newFavorites = favorites.find(f => f.id === repo.id)
+      ? favorites.filter(f => f.id !== repo.id)
+      : [...favorites, repo];
+    
+    setFavorites(newFavorites);
+    localStorage.setItem('favorites', JSON.stringify(newFavorites));
+  };
+
+  return (
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-4xl font-bold text-center text-gray-900 dark:text-white mb-8">
+          GitHub Explorer
+        </h1>
+
+        <div className="flex flex-wrap justify-center gap-4 mb-8">
+          <button
+            onClick={() => {
+              setShowFavorites(false);
+              setShowReadmeGenerator(false);
+              setShowCheatSheet(false);
+              setShowProfileAnalyzer(false);
+            }}
+            className={`px-6 py-2 rounded-lg ${
+              !showFavorites && !showReadmeGenerator && !showCheatSheet && !showProfileAnalyzer
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+            }`}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Search
+          </button>
+          <button
+            onClick={() => {
+              setShowFavorites(true);
+              setShowReadmeGenerator(false);
+              setShowCheatSheet(false);
+              setShowProfileAnalyzer(false);
+            }}
+            className={`px-6 py-2 rounded-lg ${
+              showFavorites 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+            }`}
           >
-            Read our docs
-          </a>
+            Favorites ({favorites.length})
+          </button>
+          <button
+            onClick={() => {
+              setShowFavorites(false);
+              setShowReadmeGenerator(true);
+              setShowCheatSheet(false);
+              setShowProfileAnalyzer(false);
+            }}
+            className={`px-6 py-2 rounded-lg ${
+              showReadmeGenerator 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+            }`}
+          >
+            README Generator
+          </button>
+          <button
+            onClick={() => {
+              setShowFavorites(false);
+              setShowReadmeGenerator(false);
+              setShowCheatSheet(!showCheatSheet);
+              setShowProfileAnalyzer(false);
+            }}
+            className={`px-6 py-2 rounded-lg ${
+              showCheatSheet 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+            }`}
+          >
+            Git Cheat Sheet
+          </button>
+          <button
+            onClick={() => {
+              setShowFavorites(false);
+              setShowReadmeGenerator(false);
+              setShowCheatSheet(false);
+              setShowProfileAnalyzer(!showProfileAnalyzer);
+            }}
+            className={`px-6 py-2 rounded-lg ${
+              showProfileAnalyzer 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+            }`}
+          >
+            Profile Analyzer
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        
+        {!showReadmeGenerator && !showCheatSheet && !showProfileAnalyzer ? (
+          <>
+            {!showFavorites && (
+              <>
+                <SearchBar onSearch={searchRepositories} onSort={handleSort} />
+                
+                {loading && (
+                  <div className="flex justify-center items-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+                  </div>
+                )}
+                
+                {repos.length > 0 && (
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+                      Search Results
+                    </h2>
+                    <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                      {repos.map((repo) => (
+                        <RepoCard
+                          key={repo.id}
+                          repo={repo}
+                          isFavorite={favorites.some(f => f.id === repo.id)}
+                          onToggleFavorite={toggleFavorite}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {showFavorites && (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+                  Favorite Repositories
+                </h2>
+                {favorites.length > 0 ? (
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {favorites.map((repo) => (
+                      <RepoCard
+                        key={repo.id}
+                        repo={repo}
+                        isFavorite={true}
+                        onToggleFavorite={toggleFavorite}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-gray-600 dark:text-gray-400">
+                    No favorite repositories yet
+                  </p>
+                )}
+              </div>
+            )}
+          </>
+        ) : showReadmeGenerator ? (
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+              GitHub Profile README Generator
+            </h2>
+            <ProfileReadmeGenerator />
+          </div>
+        ) : showCheatSheet ? (
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+              Git Cheat Sheet
+            </h2>
+            <GitCheatSheet />
+          </div>
+        ) : showProfileAnalyzer ? (
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+              GitHub Profile Analyzer
+            </h2>
+            <ProfileAnalyzer />
+          </div>
+        ) : null}
+      </div>
+    </main>
   );
 }

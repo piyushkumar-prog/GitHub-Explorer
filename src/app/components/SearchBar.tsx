@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 interface SearchBarProps {
   onSearch: (query: string, language: string) => void;
@@ -17,6 +18,25 @@ const popularLanguages = [
   "Rust",
   "PHP"
 ];
+
+const fetchRepositories = async (query: string, language: string) => {
+  try {
+    const response = await axios.get('https://api.github.com/search/repositories', {
+      params: {
+        q: `${query} language:${language}`,
+        sort: 'stars',
+        order: 'desc'
+      },
+      headers: {
+        'Authorization': `Bearer ${process.env.REACT_APP_GITHUB_API_TOKEN}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching repositories:', error);
+    throw error;
+  }
+};
 
 export default function SearchBar({ onSearch, onSort }: SearchBarProps) {
   const [query, setQuery] = useState('');

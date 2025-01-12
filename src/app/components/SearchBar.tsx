@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface SearchBarProps {
   onSearch: (query: string, language: string) => void;
@@ -25,6 +25,10 @@ export default function SearchBar({ onSearch, onSort }: SearchBarProps) {
   const handleSearch = () => {
     onSearch(query, selectedLanguage === 'All' ? '' : selectedLanguage);
   };
+
+  useEffect(() => {
+    handleSearch();
+  }, [selectedLanguage]);
 
   return (
     <div className="bg-gradient-to-br from-blue-600 to-blue-500 p-4 sm:p-8 rounded-2xl shadow-lg mb-8">
@@ -65,10 +69,7 @@ export default function SearchBar({ onSearch, onSort }: SearchBarProps) {
           {popularLanguages.map((language) => (
             <button
               key={language}
-              onClick={() => {
-                setSelectedLanguage(language);
-                if (query) handleSearch();
-              }}
+              onClick={() => setSelectedLanguage(language)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all
                 ${selectedLanguage === language
                   ? 'bg-white text-blue-600'

@@ -22,7 +22,7 @@ interface RepoDetailProps {
 const RepoDetail: React.FC<RepoDetailProps> = ({ repo, onClose }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg max-w-md w-full relative">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg max-w-md w-full relative mx-4 sm:mx-0">
         <button onClick={onClose} className="text-gray-500 font-bold p-2 hover:text-gray-700 absolute top-2 right-2">
           Close
         </button>

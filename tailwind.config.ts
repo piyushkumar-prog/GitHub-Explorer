@@ -11,6 +11,7 @@ const config: Config = {
   },
   plugins: [
     require('@tailwindcss/forms'),
+    require('@tailwindcss/line-clamp'),
   ],
   darkMode: 'media', // enables dark mode based on system preferences
 }
